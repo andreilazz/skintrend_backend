@@ -17,7 +17,10 @@ export class AuthController {
   @UseGuards(AuthGuard('steam'))
   async steamAuthReturn(@Request() req, @Res() res: Response) {
     const authData = this.authService.generateJwtForSteam(req.user);
-    res.redirect(`https://api.skintrend.skin/trade?token=${authData.access_token}`);
+    
+    // MODIFICARE AICI: Scoatem "api." din link!
+    // Trimitem userul către FRONTEND (Vercel), nu către BACKEND (Render)
+    res.redirect(`https://skintrend.skin/trade?token=${authData.access_token}`);
   }
 
   @Post('register')
