@@ -6,12 +6,12 @@ async function bootstrap() {
 
   // AICI E SECRETUL: Dăm voie Frontend-ului să ia date
   app.enableCors({
-    origin: 'https://api.skintrend.skin', // Portul unde rulează Next.js
+    origin: 'https://skintrend.skin', // Portul unde rulează Next.js
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   await app.listen(3001);
-  console.log(`🚀 Serverul Backend rulează pe: https://api.skintrend.skin`);
+  console.log(`🚀 Serverul Backend rulează pe: https://skintrend.skin`);
 }
 bootstrap();
