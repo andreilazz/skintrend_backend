@@ -7,8 +7,8 @@ import { AuthService } from './auth.service';
 export class SteamStrategy extends PassportStrategy(Strategy, 'steam') {
   constructor(private authService: AuthService) {
     super({
-      returnURL: 'http://localhost:3001/auth/steam/return',
-      realm: 'http://localhost:3001/',
+      returnURL: 'https://api.skintrend.skin/auth/steam/return',
+      realm: 'https://api.skintrend.skin',
       apiKey: '62847AB6EC700D43C379C563670A9B4F', // <--- PUNE CHEIA API AICI
     });
   }

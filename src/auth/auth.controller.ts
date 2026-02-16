@@ -17,7 +17,7 @@ export class AuthController {
   @UseGuards(AuthGuard('steam'))
   async steamAuthReturn(@Request() req, @Res() res: Response) {
     const authData = this.authService.generateJwtForSteam(req.user);
-    res.redirect(`http://localhost:3000/trade?token=${authData.access_token}`);
+    res.redirect(`https://api.skintrend.skin/trade?token=${authData.access_token}`);
   }
 
   @Post('register')

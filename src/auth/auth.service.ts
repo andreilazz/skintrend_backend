@@ -110,7 +110,7 @@ export class AuthService {
     user.email = email;
     await this.userRepo.save(user);
 
-    const verificationUrl = `http://localhost:3000/verify-email?token=${token}`;
+    const verificationUrl = `https://api.skintrend.skin/verify-email?token=${token}`;
     
     // Aici apelăm serviciul de mail configurat în AppModule
     try {
