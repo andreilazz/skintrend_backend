@@ -163,10 +163,11 @@ export class PriceService implements OnModuleInit {
   async getHistory(assetName: string, timeframe: string = '1H') {
     const rawData = await this.priceRepo.find({
       where: { assetName },
-      order: { id: 'ASC' }, // Am pus id pentru că SQLite ordonează mai rapid așa
+      order: { id: 'ASC' }, 
     });
     return rawData.map(p => ({
-      time: Math.floor(new Date(p.updatedAt || new Date()).getTime() / 1000),
+      // AM CORECTAT AICI: p.createdAt în loc de p.updatedAt
+      time: Math.floor(new Date(p.createdAt || new Date()).getTime() / 1000),
       value: parseFloat(p.price.toString()) || 0 
     }));
   }

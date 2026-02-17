@@ -2,9 +2,9 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Position } from './position.entity';
-import { Price } from '../price/price.entity';
 import { User } from './user.entity';
 import { Transaction } from './transaction.entity';
+import { PriceService } from '../price/price.service'; // NOU: Importăm motorul HFT
 
 @Injectable()
 export class TradingService {
@@ -13,9 +13,9 @@ export class TradingService {
 
   constructor(
     @InjectRepository(Position) private positionRepo: Repository<Position>,
-    @InjectRepository(Price) private priceRepo: Repository<Price>,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
+    private priceService: PriceService, // NOU: Folosim PriceService pentru viteză din RAM
   ) {}
 
   async getBalance(userId: number) {
@@ -46,7 +46,6 @@ export class TradingService {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new BadRequestException('Invalid user.');
 
-    // Security: Email verification check
     if (!user.isEmailVerified) {
       throw new BadRequestException('You must verify your email to withdraw funds!');
     }
@@ -68,16 +67,24 @@ export class TradingService {
     return this.txRepo.find({ where: { userId }, order: { createdAt: 'DESC' }, take: 20 });
   }
 
+  // --- MOTORUL DE TRADING (HFT + SPREAD) ---
+
   async openPosition(type: 'LONG' | 'SHORT', amount: number, assetName: string, userId: number) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found!');
     if (Number(user.balance) < amount) throw new BadRequestException('Insufficient funds!');
 
-    const currentPrice = await this.priceRepo.findOne({ where: { assetName }, order: { createdAt: 'DESC' } });
-    if (!currentPrice) throw new BadRequestException('Price for this asset is currently unavailable!');
+    // Tragem prețul direct din memoria RAM (Viteză instantă)
+    const liveAsset = this.priceService.getLiveAsset(assetName);
+    if (!liveAsset) throw new BadRequestException('Asset is currently unavailable for trading!');
+
+    // LOGICA DE BROKER: 
+    // Dacă pariază pe creștere (LONG), cumpără de la noi mai scump (ASK)
+    // Dacă pariază pe scădere (SHORT), ne vinde nouă mai ieftin (BID)
+    const entryPrice = type === 'LONG' ? liveAsset.askPrice : liveAsset.bidPrice;
 
     const newPosition = this.positionRepo.create({
-      userId, assetName, type, entryPrice: currentPrice.price, amount, status: 'OPEN',
+      userId, assetName, type, entryPrice, amount, status: 'OPEN',
     });
 
     user.balance = Number(user.balance) - amount;
@@ -88,9 +95,17 @@ export class TradingService {
 
   async getOpenPositions(userId: number) {
     const positions = await this.positionRepo.find({ where: { userId, status: 'OPEN' }, order: { createdAt: 'DESC' } });
-    return Promise.all(positions.map(async (pos) => {
-      const livePriceEntry = await this.priceRepo.findOne({ where: { assetName: pos.assetName }, order: { createdAt: 'DESC' } });
-      const livePrice = livePriceEntry ? Number(livePriceEntry.price) : Number(pos.entryPrice);
+    
+    // Nu mai folosim Promise.all cu apeluri DB, e mult mai rapid acum din RAM
+    return positions.map((pos) => {
+      const liveAsset = this.priceService.getLiveAsset(pos.assetName);
+      
+      // Dacă vrea să închidă acum: 
+      // Un LONG se închide vânzând (la prețul BID)
+      // Un SHORT se închide cumpărând înapoi (la prețul ASK)
+      const livePrice = liveAsset 
+        ? (pos.type === 'LONG' ? liveAsset.bidPrice : liveAsset.askPrice)
+        : Number(pos.entryPrice);
       
       const diff = livePrice - Number(pos.entryPrice);
       const quantity = Number(pos.amount) / Number(pos.entryPrice);
@@ -101,21 +116,20 @@ export class TradingService {
       const liveProfitNet = grossProfit - fee;
 
       return { ...pos, currentPrice: livePrice, liveProfit: liveProfitNet };
-    }));
-  }
-
-  async getHistory(userId: number) {
-    return this.positionRepo.find({ where: { userId, status: 'CLOSED' }, order: { createdAt: 'DESC' }, take: 20 });
+    });
   }
 
   async closePosition(id: number, userId: number) {
     const position = await this.positionRepo.findOne({ where: { id, userId } });
     if (!position || position.status === 'CLOSED') throw new BadRequestException('Transaction does not exist or is already closed!');
 
-    const currentPrice = await this.priceRepo.findOne({ where: { assetName: position.assetName }, order: { createdAt: 'DESC' } });
-    if (!currentPrice) throw new BadRequestException('Live price unavailable for settlement!');
+    const liveAsset = this.priceService.getLiveAsset(position.assetName);
+    if (!liveAsset) throw new BadRequestException('Live price unavailable for settlement!');
 
-    const diff = Number(currentPrice.price) - Number(position.entryPrice);
+    // Prețul de decontare cu spread
+    const closePrice = position.type === 'LONG' ? liveAsset.bidPrice : liveAsset.askPrice;
+
+    const diff = closePrice - Number(position.entryPrice);
     const quantity = Number(position.amount) / Number(position.entryPrice);
     const grossProfit = position.type === 'LONG' ? (diff * quantity) : (-diff * quantity);
 
@@ -124,7 +138,7 @@ export class TradingService {
     const netProfit = grossProfit - fee;
 
     position.status = 'CLOSED';
-    position.closePrice = currentPrice.price;
+    position.closePrice = closePrice;
     position.profit = netProfit;
 
     const user = await this.userRepo.findOne({ where: { id: userId } });
@@ -136,6 +150,10 @@ export class TradingService {
     await this.userRepo.save(user);
 
     return position;
+  }
+
+  async getHistory(userId: number) {
+    return this.positionRepo.find({ where: { userId, status: 'CLOSED' }, order: { createdAt: 'DESC' }, take: 20 });
   }
 
   async getAnalytics(userId: number) {
@@ -170,7 +188,6 @@ export class TradingService {
   }
 
   async getAdminStats() {
-    // Selectăm și isEmailVerified pentru a vedea statusul în Admin Dashboard
     const users = await this.userRepo.find({ 
       select: ['id', 'username', 'balance', 'steamId', 'avatar', 'isEmailVerified'] 
     });
