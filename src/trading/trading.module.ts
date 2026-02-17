@@ -1,18 +1,21 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TradingController } from './trading.controller';
 import { TradingService } from './trading.service';
+import { TradingController } from './trading.controller';
 import { Position } from './position.entity';
+import { Price } from '../price/price.entity';
 import { User } from './user.entity';
 import { Transaction } from './transaction.entity';
-import { PriceModule } from '../price/price.module'; // IMPORTA ASTA
+import { AuthModule } from '../auth/auth.module';
+import { PriceModule } from '../price/price.module'; // <--- IMPORTĂ ASTA
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Position, User, Transaction]),
-    PriceModule, // ADĂUGA ASTA AICI
+    TypeOrmModule.forFeature([Position, Price, User, Transaction]),
+    AuthModule,
+    PriceModule, // <--- ADAUGĂ ASTA ÎN ARRAY-UL DE IMPORTS
   ],
-  controllers: [TradingController],
   providers: [TradingService],
+  controllers: [TradingController],
 })
 export class TradingModule {}
