@@ -29,10 +29,13 @@ export class NewsService {
       // Luăm primele 5 articole
       const newsItems = feed.items.slice(0, 5).map(item => {
         const news = new News();
-        news.title = item.title;
-        news.link = item.link;
-        news.date = item.pubDate;
+        
+        // Adăugăm || 'text de rezervă' ca să mulțumim TypeScript-ul
+        news.title = item.title || 'Actualizare CS2';
+        news.link = item.link || 'https://blog.counter-strike.net/';
+        news.date = item.pubDate || new Date().toISOString();
         news.snippet = item.contentSnippet ? item.contentSnippet.substring(0, 150) + '...' : '';
+        
         return news;
       });
 
