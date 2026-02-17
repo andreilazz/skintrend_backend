@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,7 +6,7 @@ import { News } from './news.entity';
 import Parser from 'rss-parser';
 
 @Injectable()
-export class NewsService {
+export class NewsService implements OnModuleInit { // <-- Am adăugat implements OnModuleInit
   private readonly logger = new Logger(NewsService.name);
   private parser = new Parser();
 
@@ -14,6 +14,12 @@ export class NewsService {
     @InjectRepository(News)
     private newsRepository: Repository<News>,
   ) {}
+
+  // 🔥 ASTA E PARTEA NOUĂ: Se execută o singură dată, imediat cum pornește serverul pe Render
+  async onModuleInit() {
+    this.logger.log('Pornire server: Forțăm prima preluare de știri...');
+    await this.fetchCS2News();
+  }
 
   // Trage știri la fiecare 4 ore
   @Cron(CronExpression.EVERY_4_HOURS)
