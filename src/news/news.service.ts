@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { News } from './news.entity';
-import * as Parser from 'rss-parser';
+import Parser from 'rss-parser';
 
 @Injectable()
 export class NewsService {
