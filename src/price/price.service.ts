@@ -103,7 +103,7 @@ export class PriceService implements OnModuleInit {
     // sau le scriem în loturi (batches) dacă vrem istoric la absolut tot.
     // Momentan vom salva un snapshot de performanță.
     
-    const batch = [];
+    const batch: Price[] = [];;
     for (const [itemName, data] of this.liveMarket.entries()) {
       // Salvăm în DB doar itemele de peste 10$ ca să optimizăm SQLite-ul
       if (data.currentPrice > 10) {
