@@ -35,13 +35,22 @@ export class NewsService implements OnModuleInit { // <-- Am adăugat implements
       // Luăm primele 5 articole
       const newsItems = feed.items.slice(0, 5).map(item => {
         const news = new News();
-        
-        // Adăugăm || 'text de rezervă' ca să mulțumim TypeScript-ul
         news.title = item.title || 'Actualizare CS2';
         news.link = item.link || 'https://blog.counter-strike.net/';
         news.date = item.pubDate || new Date().toISOString();
         news.snippet = item.contentSnippet ? item.contentSnippet.substring(0, 150) + '...' : '';
         
+        // --- LOGICA DE IMPACT ---
+        const titleLower = news.title.toLowerCase();
+        // Cuvinte cheie care declanșează alerta roșie (High Impact)
+        const isHighImpact = titleLower.includes('release notes') || 
+                             titleLower.includes('update') || 
+                             titleLower.includes('operation') ||
+                             titleLower.includes('case');
+        
+        news.impact = isHighImpact ? 'high' : 'low';
+        // ------------------------
+
         return news;
       });
 

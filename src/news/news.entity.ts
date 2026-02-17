@@ -16,4 +16,8 @@ export class News {
 
   @Column({ type: 'text' })
   snippet: string;
+  
+  @Column({ default: 'low' })
+  impact: string;
+
 }
