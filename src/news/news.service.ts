@@ -40,14 +40,19 @@ export class NewsService implements OnModuleInit { // <-- Am adăugat implements
         news.date = item.pubDate || new Date().toISOString();
         news.snippet = item.contentSnippet ? item.contentSnippet.substring(0, 150) + '...' : '';
         
-        // --- LOGICA DE IMPACT ---
+        // --- LOGICA DE IMPACT CORECTATĂ ---
         const titleLower = news.title.toLowerCase();
-        // Cuvinte cheie care declanșează alerta roșie (High Impact)
-        const isHighImpact = titleLower.includes('release notes') || 
-                             titleLower.includes('update') || 
-                             titleLower.includes('operation') ||
-                             titleLower.includes('case');
         
+        // Am scos 'update' și 'release notes' pentru că Valve le folosește la orice nimic.
+        // Căutăm DOAR cuvintele cheie care anunță content nou și mișcă piața:
+        const isHighImpact = titleLower.includes('operation') || 
+                             titleLower.includes('case') || 
+                             titleLower.includes('collection') ||
+                             titleLower.includes('major') ||
+                             titleLower.includes('armory') ||
+                             titleLower.includes('pass') ||
+                             titleLower.includes('capsule');
+                             
         news.impact = isHighImpact ? 'high' : 'low';
         // ------------------------
 
