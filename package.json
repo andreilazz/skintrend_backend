@@ -27,6 +27,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.1.1",
     "@nestjs/typeorm": "^11.0.0",
     "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
@@ -39,6 +40,7 @@
     "passport-steam": "^1.0.18",
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
+    "rss-parser": "^3.13.0",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.7",
     "typeorm": "^0.3.28"
